@@ -70,9 +70,13 @@ class Identifier:
         font_scale = 1
         thickness = 1
         line_type = cv2.LINE_AA
-        text = f'{self.error_text}{self.properties.detector_choice.name} / {self.properties.descriptor_choice.name}' \
-               f' / {self.properties.matcher_choice.name} / {self.properties.matcher_method_choice.name}' \
-               f' / {self.properties.homography_method_choice.name}'
+
+        # text = f'{self.error_text}{self.properties.detector_choice.name} / {self.properties.descriptor_choice.name}' \
+        #        f' / {self.properties.matcher_choice.name} / {self.properties.matcher_method_choice.name}' \
+        #        f' / {self.properties.homography_method_choice.name}'
+        text = '{}'.format(self.error_text) + '{}'.format(self.properties.detector_choice.name) + '/' '{}'.format(self.properties.descriptor_choice.name) + \
+               '{}'.format(self.properties.matcher_choice.name) + '/' + '{}'.format(self.properties.matcher_method_choice.name) + \
+               '{}'.format(self.properties.homography_method_choice.name)
         img = cv2.putText(img, text, (0, 15), font, font_scale, (255, 255, 255), thickness, line_type)
         img = cv2.putText(img, text, (0, 15), font, font_scale, (0, 0, 0), thickness, line_type)
         cv2.imshow(name, img)
