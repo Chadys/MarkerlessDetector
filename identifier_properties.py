@@ -21,7 +21,8 @@ class MatcherMethodDef:
     @staticmethod
     def match(properties, des1, des2, kp1, kp2, min_distance=100):
         matches = properties.matcher.match(des1, des2)
-        min_match_dist = min(min_distance, min(matches, key=attrgetter('distance')).distance)
+        min_match_dist = min(min_distance,
+                             min(matches, key=attrgetter('distance')).distance) if matches else min_distance
         return [m for m in matches
                 if m.distance <= 3 * min_match_dist]
 
@@ -103,6 +104,18 @@ class PropertiesGenerator:
                 yield item
 
     def __init__(self):
+        self.detector_choice = None
+        self.detector = None
+        self.descriptor_choice = None
+        self.descriptor = None
+        self.matcher_choice = None
+        self.matcher = None
+        self.matcher_method_choice = None
+        self.homography_method_choice = None
+        self.homography_method = None
+        self.k = 2
+        self.color = False
+
         self.detector_gen = self.circular_generator(FeatureDetector)
         self.descriptor_gen = self.circular_generator(FeatureDescriptor)
         self.matcher_gen = self.circular_generator(Matcher)
@@ -121,6 +134,8 @@ class PropertiesGenerator:
     def update_descriptor(self, init=False):
         self.descriptor_choice = next(self.descriptor_gen)
         self.descriptor = self.descriptor_choice.value()
+        if self.descriptor_choice == FeatureDescriptor.LUCID:
+            self.color = True
         if not init:
             self.matcher = self.get_correct_matcher()
 
@@ -149,7 +164,6 @@ class PropertiesGenerator:
         else:
             index_params = dict(algorithm=FlannAlgorithm.KDTREE.value, trees=5)
 
-        self.k = 2
         if self.matcher_choice == Matcher.BFM:
             matcher = cv2.BFMatcher.create(distance_measurement,
                                            crossCheck=self.matcher_method_choice == MatchMethod.MATCH)

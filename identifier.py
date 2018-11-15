@@ -99,7 +99,8 @@ class Identifier:
                 if not ret:
                     raise KeyboardInterrupt
                 # print('Loading query image {}'.format(name))
-                img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+                img = cv2.cvtColor(img, cv2.COLOR_BGRA2BGR) if self.properties.color \
+                      else cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
                 # print('  Calculating features ...')
                 query_kp, query_des = self.calculate_feature_points(img)
                 if query_des is None or query_des.size == 0:
