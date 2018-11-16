@@ -4,9 +4,9 @@
 import sys
 import argparse
 import numpy as np
+import itertools
 import cv2
 from identifier_properties import PropertiesGenerator
-
 
 MIN_MATCH_COUNT = 10
 
@@ -65,6 +65,37 @@ class Identifier:
     def template_classif(good_matches):
         return max(range(len(good_matches)), key=lambda i: len(good_matches[i]))
 
+    @staticmethod
+    def is_valid_square(square_pts):
+        pts_pairs = itertools.combinations(square_pts, 2)
+        # check if any two points are equal
+        for pair in pts_pairs:
+            if round(pair[0][0][0], 0) == round(pair[1][0][0], 0) \
+                    and round(pair[0][0][1], 0) == round(pair[1][0][1], 0):
+                return False
+        #check if 3 points are aligned
+        if Identifier.collinear_3_of_4(square_pts[0][0], square_pts[1][0], square_pts[2][0], square_pts[3][0]):
+            return False
+        # TODO check if points form a converx figure
+        return True
+
+    @staticmethod
+    def collinear_3_of_4(p1, p2, p3, p4, eps=0.0005):
+        # (p1, p2, p3) are collinear if and only if
+        #     abs( (p2.x-p1.x)*(p3.y-p1.y) -
+        #          (p3.x-p1.x)*(p2.y-p1.y) ) <= eps
+        (x12, y12) = (p2[0] - p1[0], p2[1] - p1[1])
+        (x13, y13) = (p3[0] - p1[0], p3[1] - p1[1])
+        (x14, y14) = (p4[0] - p1[0], p4[1] - p1[1])
+        (x23, y23) = (p3[0] - p2[0], p3[1] - p2[1])
+        (x24, y24) = (p4[0] - p2[0], p4[1] - p2[1])
+        # Test each unique triplet.
+        # 4 choose 3 = 4 triplets: 123, 124, 134, 234
+        return (abs(x12 * y13 - x13 * y12) < eps)\
+            or (abs(x12 * y14 - x14 * y12) < eps)\
+            or (abs(x13 * y14 - x14 * y13) < eps)\
+            or (abs(x23 * y24 - x24 * y23) < eps)
+
     def display_img(self, name, img):
         font = cv2.FONT_HERSHEY_PLAIN
         font_scale = 1
@@ -74,9 +105,10 @@ class Identifier:
         # text = f'{self.error_text}{self.properties.detector_choice.name} / {self.properties.descriptor_choice.name}' \
         #        f' / {self.properties.matcher_choice.name} / {self.properties.matcher_method_choice.name}' \
         #        f' / {self.properties.homography_method_choice.name}'
-        text = '{}'.format(self.error_text) + '{}'.format(self.properties.detector_choice.name) + '/' '{}'.format(self.properties.descriptor_choice.name) + \
-               '{}'.format(self.properties.matcher_choice.name) + '/' + '{}'.format(self.properties.matcher_method_choice.name) + \
-               '{}'.format(self.properties.homography_method_choice.name)
+        text = '{}{}/{}/{}/{}/{}'.format(self.error_text, self.properties.detector_choice.name,
+                                         self.properties.descriptor_choice.name, self.properties.matcher_choice.name,
+                                         self.properties.matcher_method_choice.name,
+                                         self.properties.homography_method_choice.name)
         img = cv2.putText(img, text, (0, 15), font, font_scale, (255, 255, 255), thickness, line_type)
         img = cv2.putText(img, text, (0, 15), font, font_scale, (0, 0, 0), thickness, line_type)
         cv2.imshow(name, img)
@@ -104,7 +136,7 @@ class Identifier:
                     raise KeyboardInterrupt
                 # print('Loading query image {}'.format(name))
                 img = cv2.cvtColor(img, cv2.COLOR_BGRA2BGR) if self.properties.color \
-                      else cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+                    else cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
                 # print('  Calculating features ...')
                 query_kp, query_des = self.calculate_feature_points(img)
                 if query_des is None or query_des.size == 0:
@@ -121,7 +153,7 @@ class Identifier:
                     self.display_img('img', img)
                     continue
 
-                # Get closest template using k-nn
+                # Get closest template
                 best_template = self.template_classif(list_good_matches)
 
                 # Keep the best result
@@ -139,19 +171,16 @@ class Identifier:
                 h, w = template.img.shape
                 pts = np.float32([[0, 0], [0, h - 1], [w - 1, h - 1], [w - 1, 0]]).reshape(-1, 1, 2)
                 dst = cv2.perspectiveTransform(pts, matrix)
+                if not self.is_valid_square(dst):
+                    img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+                    img = cv2.polylines(img, [np.int32(dst)], True, (0, 0, 255), 3, cv2.LINE_AA)
+                    self.display_img('img', img)
+                    continue
 
                 img = cv2.polylines(img, [np.int32(dst)], True, 255, 3, cv2.LINE_AA)
 
-                # matchesMask = mask.ravel().tolist()
-                # draw_params = dict(matchColor=(0, 255, 0),  # draw matches in green color
-                #                    singlePointColor=None,
-                #                    matchesMask=matchesMask,  # draw only inliers
-                #                    flags=2)
-                #
-                # out = cv2.drawMatches(templ_img, templ_kp, img, query_kp, good, None, **draw_params)
-                # display_img('img', out)
-
                 self.display_img('img', img)
+                continue
 
         except KeyboardInterrupt:
             cap.release()
