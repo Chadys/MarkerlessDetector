@@ -24,6 +24,7 @@ class Identifier:
         self.error_text = ''
         self.templates = []
         self.load_template(template_names)
+        self.template_cm_size = 4.23  # cm
 
     def load_template(self, template_names):
         for name in template_names:
@@ -94,6 +95,21 @@ class Identifier:
             self.properties.update_matcher_method()
         elif k == 't':
             self.properties.update_homography_method()
+
+    def compute_dist(self, img, target_pts, tvec):
+        side_length = np.mean([np.linalg.norm(target_pts[0].ravel() - target_pts[1].ravel()),
+                               np.linalg.norm(target_pts[1].ravel() - target_pts[2].ravel()),
+                               np.linalg.norm(target_pts[2].ravel() - target_pts[3].ravel()),
+                               np.linalg.norm(target_pts[3].ravel() - target_pts[0].ravel())])
+        pixels_per_metric = side_length / self.template_cm_size
+        dist = tvec[2][0] / pixels_per_metric
+        font = cv2.FONT_HERSHEY_PLAIN
+        font_scale = 3
+        thickness = 3
+        line_type = cv2.LINE_AA
+        height, width = img.shape[:2]
+        return cv2.putText(img, 'distance : {}cm'.format(round(dist, 2)), (width-500, height-20),
+                          font, font_scale, (255, 0, 125), thickness, line_type)
 
     def draw_axis(self, img, rvec, tvec, length=100):
         axis_points = np.float32([(0, 0, 0), (length, 0, 0), (0, length, 0), (0, 0, length)])
@@ -166,6 +182,7 @@ class Identifier:
                 if success:
                     img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
                     self.draw_axis(img, rotation_vector, translation_vector)
+                    img = self.compute_dist(img, dst, translation_vector)
 
                 self.display_img('img', img)
                 continue
