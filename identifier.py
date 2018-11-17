@@ -4,7 +4,6 @@
 import sys
 import argparse
 import numpy as np
-import itertools
 import cv2
 from identifier_properties import PropertiesGenerator
 
@@ -96,6 +95,18 @@ class Identifier:
         elif k == 't':
             self.properties.update_homography_method()
 
+    def draw_axis(self, img, rvec, tvec, length=100):
+        axis_points = np.float32([(0, 0, 0), (length, 0, 0), (0, length, 0), (0, 0, length)])
+
+        image_points, _ = cv2.projectPoints(axis_points, rvec, tvec,
+                                            self.properties.camera_matrix,
+                                            self.properties.dist_coeffs)
+
+        origin = tuple(image_points[0].ravel())
+        cv2.line(img, origin, tuple(image_points[1].ravel()), (0, 0, 255), thickness=3)
+        cv2.line(img, origin, tuple(image_points[2].ravel()), (0, 255, 0), 3)
+        cv2.line(img, origin, tuple(image_points[3].ravel()), (255, 0, 0), 3)
+
     def run(self):
         # load query
         cap = cv2.VideoCapture(0)
@@ -103,7 +114,7 @@ class Identifier:
             while True:
                 ret, img = cap.read()  # Capture frame-by-frame
                 if not ret:
-                    raise KeyboardInterrupt
+                    raise KeyboardInterrupt()
                 # print('Loading query image {}'.format(name))
                 img = cv2.cvtColor(img, cv2.COLOR_BGRA2BGR) if self.properties.color \
                     else cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -139,13 +150,22 @@ class Identifier:
                     continue
 
                 h, w = template.img.shape
-                pts = np.float32([[0, 0], [0, h - 1], [w - 1, h - 1], [w - 1, 0]]).reshape(-1, 1, 2)
+                pts = np.expand_dims(np.float32([[0, 0], [0, h - 1], [w - 1, h - 1], [w - 1, 0]]), axis=1)
                 dst = cv2.perspectiveTransform(pts, matrix)
                 if not self.is_valid_square(dst):
                     self.display_img('img', img)
                     continue
 
                 img = cv2.polylines(img, [np.int32(dst)], True, 255, 3, cv2.LINE_AA)
+                (success, rotation_vector, translation_vector) = cv2.solvePnP(
+                    np.insert(pts.reshape(-1, 2), 2, 0, axis=1),
+                    dst.reshape(-1, 2),
+                    self.properties.camera_matrix,
+                    self.properties.dist_coeffs,
+                    flags=cv2.SOLVEPNP_ITERATIVE)
+                if success:
+                    img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+                    self.draw_axis(img, rotation_vector, translation_vector)
 
                 self.display_img('img', img)
                 continue

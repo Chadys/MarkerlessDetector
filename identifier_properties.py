@@ -2,6 +2,8 @@ from enum import Enum
 import cv2
 from operator import attrgetter
 from functools import partial
+import numpy
+import yaml
 
 
 class MatcherMethodDef:
@@ -115,6 +117,10 @@ class PropertiesGenerator:
         self.homography_method = None
         self.k = 2
         self.color = False
+        with open('calibration.yaml') as f:
+            loadeddict = yaml.load(f)
+            self.camera_matrix = numpy.asarray(loadeddict.get('cameraMatrix'))
+            self.dist_coeffs = numpy.asarray(loadeddict.get('distCoeffs'))
 
         self.detector_gen = self.circular_generator(FeatureDetector)
         self.descriptor_gen = self.circular_generator(FeatureDescriptor)
