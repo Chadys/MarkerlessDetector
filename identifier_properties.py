@@ -100,9 +100,9 @@ class HomographyMethod(Enum):
 class PropertiesGenerator:
 
     @staticmethod
-    def circular_generator(enum):
+    def circular_generator(iter):
         while True:
-            for item in enum:
+            for item in iter:
                 yield item
 
     def __init__(self):
@@ -140,8 +140,7 @@ class PropertiesGenerator:
     def update_descriptor(self, init=False):
         self.descriptor_choice = next(self.descriptor_gen)
         self.descriptor = self.descriptor_choice.value()
-        if self.descriptor_choice == FeatureDescriptor.LUCID:
-            self.color = True
+        self.color = self.descriptor_choice == FeatureDescriptor.LUCID
         if not init:
             self.matcher = self.get_correct_matcher()
 

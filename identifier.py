@@ -82,6 +82,9 @@ class Identifier:
         img = cv2.putText(img, text, (0, 15), font, font_scale, (255, 255, 255), thickness, line_type)
         img = cv2.putText(img, text, (0, 15), font, font_scale, (0, 0, 0), thickness, line_type)
         cv2.imshow(name, img)
+        self.process_keys()
+
+    def process_keys(self):
         k = chr(cv2.waitKey(1) & 255)
         if k == 'a':
             self.properties.update_detector()
@@ -118,10 +121,10 @@ class Identifier:
                                             self.properties.camera_matrix,
                                             self.properties.dist_coeffs)
 
-        origin = tuple(image_points[0].ravel())
-        cv2.line(img, origin, tuple(image_points[1].ravel()), (0, 0, 255), thickness=3)
-        cv2.line(img, origin, tuple(image_points[2].ravel()), (0, 255, 0), 3)
-        cv2.line(img, origin, tuple(image_points[3].ravel()), (255, 0, 0), 3)
+        origin = tuple(image_points[0].ravel().astype(int, casting='unsafe'))
+        cv2.line(img, origin, tuple(image_points[1].ravel().astype(int, casting='unsafe')), (0, 0, 255), thickness=3)
+        cv2.line(img, origin, tuple(image_points[2].ravel().astype(int, casting='unsafe')), (0, 255, 0), thickness=3)
+        cv2.line(img, origin, tuple(image_points[3].ravel().astype(int, casting='unsafe')), (255, 0, 0), thickness=3)
 
     def run(self):
         # load query
