@@ -11,9 +11,11 @@ MIN_MATCH_COUNT = 10
 
 
 class Template:
-    def __init__(self, name, img, kp, des):
+    def __init__(self, name, gray_img, color_img, kp, des, grayscale = True):
         self.name = name
-        self.img = img
+        self.img_gray = gray_img
+        self.img_color = color_img
+        self.img = gray_img if grayscale else color_img
         self.kp = kp
         self.des = des
 
@@ -29,17 +31,20 @@ class Identifier:
     def load_template(self, template_names):
         for name in template_names:
             print('Loading template image {}'.format(name))
-            img = cv2.imread(name, cv2.IMREAD_GRAYSCALE)
+            color_img = cv2.imread(name, cv2.IMREAD_COLOR)
+            gray_img = cv2.cvtColor(color_img, cv2.COLOR_BGRA2GRAY)
             print('  Calculating features ...')
-            kp, des = self.calculate_feature_points(img)
+            kp, des = self.calculate_feature_points(gray_img)
             if des.size > 0:
-                self.templates.append(Template(name, img, kp, des))
-            img2 = None
-            img = cv2.drawKeypoints(img, kp, img2)
-            self.display_img(name, img)
+                self.templates.append(Template(name, gray_img, color_img, kp, des))
+            img = None
+            gray_img = cv2.drawKeypoints(gray_img, kp, img)
+            self.display_img(name, gray_img)
 
-    def update_template(self):
+    def update_template(self, color_changed = False):
         for template in self.templates:
+            if color_changed:
+                template.img = template.img_color if self.properties.color else template.img_gray
             template.kp, template.des = self.calculate_feature_points(template.img)
             img2 = None
             img = cv2.drawKeypoints(template.img, template.kp, img2)
@@ -90,8 +95,10 @@ class Identifier:
             self.properties.update_detector()
             self.update_template()
         elif k == 'z':
+            color_changed = self.properties.color
             self.properties.update_descriptor()
-            self.update_template()
+            color_changed = color_changed != self.properties.color
+            self.update_template(color_changed)
         elif k == 'e':
             self.properties.update_matcher()
         elif k == 'r':
@@ -168,7 +175,7 @@ class Identifier:
                     self.display_img('img', img)
                     continue
 
-                h, w = template.img.shape
+                h, w = template.img.shape[0:2]
                 pts = np.expand_dims(np.float32([[0, 0], [0, h - 1], [w - 1, h - 1], [w - 1, 0]]), axis=1)
                 dst = cv2.perspectiveTransform(pts, matrix)
                 if not self.is_valid_square(dst):
