@@ -21,12 +21,12 @@ class Template:
 
 
 class Identifier:
-    def __init__(self, template_names):
+    def __init__(self, template_names, size_cm):
         self.properties = PropertiesGenerator()
         self.error_text = ''
         self.templates = []
         self.load_template(template_names)
-        self.template_cm_size = 4.23  # cm
+        self.template_cm_size = size_cm
 
     def load_template(self, template_names):
         for name in template_names:
@@ -116,7 +116,7 @@ class Identifier:
         return cv2.putText(img, 'distance : {}cm'.format(round(dist, 2)), (width - 500, height - 20),
                            font, font_scale, (255, 0, 125), thickness, line_type)
 
-    def draw_axis(self, img, rvec, tvec, length=100):
+    def draw_axis(self, img, rvec, tvec, length=10):
         axis_points = np.float32([(0, 0, 0), (length, 0, 0), (0, length, 0), (0, 0, length)])
 
         image_points, _ = cv2.projectPoints(axis_points, rvec, tvec,
@@ -193,7 +193,7 @@ class Identifier:
                     flags=cv2.SOLVEPNP_ITERATIVE)
                 if success:
                     img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
-                    self.draw_axis(img, rotation_vector, translation_vector)
+                    self.draw_axis(img, rotation_vector, translation_vector, self.template_cm_size)
                     img = self.compute_dist(img, translation_vector)
 
                 self.display_img('img', img)
@@ -208,11 +208,12 @@ def main():
     parser = argparse.ArgumentParser(
         description='Image Classification and Matching Using Local Features and Homography.')
     parser.add_argument('-t', dest='template_names', nargs='+', required=True, help='List of template images')
+    parser.add_argument('-s', dest='size_cm', type=float, required=True, help='Real size in centimeter of template images')
 
     args = parser.parse_args()
 
     # load template images
-    identifier = Identifier(args.template_names)
+    identifier = Identifier(**vars(args))
     identifier.run()
 
 
