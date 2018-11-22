@@ -11,7 +11,7 @@ MIN_MATCH_COUNT = 10
 
 
 class Template:
-    def __init__(self, name, gray_img, color_img, kp, des, grayscale = True):
+    def __init__(self, name, gray_img, color_img, kp, des, grayscale=True):
         self.name = name
         self.img_gray = gray_img
         self.img_color = color_img
@@ -41,7 +41,7 @@ class Identifier:
             gray_img = cv2.drawKeypoints(gray_img, kp, img)
             self.display_img(name, gray_img)
 
-    def update_template(self, color_changed = False):
+    def update_template(self, color_changed=False):
         for template in self.templates:
             if color_changed:
                 template.img = template.img_color if self.properties.color else template.img_gray
@@ -106,20 +106,15 @@ class Identifier:
         elif k == 't':
             self.properties.update_homography_method()
 
-    def compute_dist(self, img, target_pts, tvec):
-        side_length = np.mean([np.linalg.norm(target_pts[0].ravel() - target_pts[1].ravel()),
-                               np.linalg.norm(target_pts[1].ravel() - target_pts[2].ravel()),
-                               np.linalg.norm(target_pts[2].ravel() - target_pts[3].ravel()),
-                               np.linalg.norm(target_pts[3].ravel() - target_pts[0].ravel())])
-        pixels_per_metric = side_length / self.template_cm_size
-        dist = tvec[2][0] / pixels_per_metric
+    def compute_dist(self, img, tvec):
+        dist = np.linalg.norm(tvec)
         font = cv2.FONT_HERSHEY_PLAIN
         font_scale = 3
         thickness = 3
         line_type = cv2.LINE_AA
         height, width = img.shape[:2]
-        return cv2.putText(img, 'distance : {}cm'.format(round(dist, 2)), (width-500, height-20),
-                          font, font_scale, (255, 0, 125), thickness, line_type)
+        return cv2.putText(img, 'distance : {}cm'.format(round(dist, 2)), (width - 500, height - 20),
+                           font, font_scale, (255, 0, 125), thickness, line_type)
 
     def draw_axis(self, img, rvec, tvec, length=100):
         axis_points = np.float32([(0, 0, 0), (length, 0, 0), (0, length, 0), (0, 0, length)])
@@ -128,10 +123,13 @@ class Identifier:
                                             self.properties.camera_matrix,
                                             self.properties.dist_coeffs)
 
-        origin = tuple(image_points[0].ravel().astype(int, casting='unsafe'))
-        cv2.line(img, origin, tuple(image_points[1].ravel().astype(int, casting='unsafe')), (0, 0, 255), thickness=3)
-        cv2.line(img, origin, tuple(image_points[2].ravel().astype(int, casting='unsafe')), (0, 255, 0), thickness=3)
-        cv2.line(img, origin, tuple(image_points[3].ravel().astype(int, casting='unsafe')), (255, 0, 0), thickness=3)
+        origin = tuple(image_points[0].ravel().astype(np.int32, casting='unsafe'))
+        point = image_points[1].ravel().astype(np.int32, casting='unsafe')
+        cv2.line(img, origin, tuple(point), (0, 0, 255), thickness=3)
+        point = image_points[2].ravel().astype(np.int32, casting='unsafe')
+        cv2.line(img, origin, tuple(point), (0, 255, 0), thickness=3)
+        point = image_points[3].ravel().astype(np.int32, casting='unsafe')
+        cv2.line(img, origin, tuple(point), (255, 0, 0), thickness=3)
 
     def run(self):
         # load query
@@ -182,9 +180,13 @@ class Identifier:
                     self.display_img('img', img)
                     continue
 
+                real_world_pts = np.float32([[0, 0],
+                                             [0, self.template_cm_size],
+                                             [self.template_cm_size, self.template_cm_size],
+                                             [self.template_cm_size, 0]])
                 img = cv2.polylines(img, [np.int32(dst)], True, 255, 3, cv2.LINE_AA)
                 (success, rotation_vector, translation_vector) = cv2.solvePnP(
-                    np.insert(pts.reshape(-1, 2), 2, 0, axis=1),
+                    np.insert(real_world_pts, 2, 0, axis=1),
                     dst.reshape(-1, 2),
                     self.properties.camera_matrix,
                     self.properties.dist_coeffs,
@@ -192,7 +194,7 @@ class Identifier:
                 if success:
                     img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
                     self.draw_axis(img, rotation_vector, translation_vector)
-                    img = self.compute_dist(img, dst, translation_vector)
+                    img = self.compute_dist(img, translation_vector)
 
                 self.display_img('img', img)
                 continue
