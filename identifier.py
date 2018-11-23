@@ -43,16 +43,16 @@ class Identifier:
     def process_keys(self):
         cv2.waitKey(1)
 
-    @staticmethod
-    def compute_dist(self, img, tvec):
-        dist = np.linalg.norm(tvec)
-        font = cv2.FONT_HERSHEY_PLAIN
-        font_scale = 3
-        thickness = 3
-        line_type = cv2.LINE_AA
-        height, width = img.shape[:2]
-        return cv2.putText(img, 'distance : {}cm'.format(round(dist, 2)), (width - 500, height - 20),
-                           font, font_scale, (255, 0, 125), thickness, line_type)
+    # @staticmethod
+    # def compute_dist(img, tvec):
+    #     dist = np.linalg.norm(tvec)
+    #     font = cv2.FONT_HERSHEY_PLAIN
+    #     font_scale = 3
+    #     thickness = 3
+    #     line_type = cv2.LINE_AA
+    #     height, width = img.shape[:2]
+    #     return cv2.putText(img, 'distance : {}cm'.format(round(dist, 2)), (width - 500, height - 20),
+    #                        font, font_scale, (255, 0, 125), thickness, line_type)
 
     def draw_axis(self, img, rvec, tvec, length=10):
         axis_points = np.float32([(0, 0, 0), (length, 0, 0), (0, length, 0), (0, 0, length)])
@@ -121,8 +121,8 @@ class Identifier:
         thickness = 1
         line_type = cv2.LINE_AA
 
-        elt = cv2.boxPoints(elt)
-        elt = np.int0(elt)
+        box = cv2.boxPoints(elt)
+        elt = np.int0(box)
 
         img = cv2.putText(img, '{}%'.format(black_percent), tuple(elt[0]), font, font_scale, (255, 255, 255), thickness,
                           line_type)
@@ -134,6 +134,7 @@ class Identifier:
                           line_type)
 
         cv2.drawContours(img, [elt], -1, (0, 0, 0), 2)
+        return box
 
     def run(self):
         cap = cv2.VideoCapture(0)
@@ -164,23 +165,22 @@ class Identifier:
                     if blue_percent < 50 and ((red_percent < 50 and green_percent < 50) or black_percent < 7):
                         continue
 
-                    self.draw_detected_form(img, elt, black_percent, blue_percent, red_percent, green_percent)
+                    box = self.draw_detected_form(img, elt, black_percent, blue_percent, red_percent, green_percent)
 
-                    # real_world_pts = np.float32([[0, 0],
-                    #                              [0, self.template_cm_size],
-                    #                              [self.template_cm_size, self.template_cm_size],
-                    #                              [self.template_cm_size, 0]])
+                    real_world_pts = np.float32([[0, 0],
+                                                 [0, self.template_cm_size],
+                                                 [self.template_cm_size, self.template_cm_size],
+                                                 [self.template_cm_size, 0]])
 
-                    # (success, rotation_vector, translation_vector) = cv2.solvePnP(
-                    #     np.insert(real_world_pts, 2, 0, axis=1),
-                    #     elt,
-                    #     self.camera_matrix,
-                    #     self.dist_coeffs,
-                    #     flags=cv2.SOLVEPNP_ITERATIVE)
-                    # if success:
-                    #     img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
-                    #     self.draw_axis(img, rotation_vector, translation_vector, self.template_cm_size)
-                    #     img = self.compute_dist(img, translation_vector)
+                    (success, rotation_vector, translation_vector) = cv2.solvePnP(
+                        np.insert(real_world_pts, 2, 0, axis=1),
+                        box,
+                        self.camera_matrix,
+                        self.dist_coeffs,
+                        flags=cv2.SOLVEPNP_ITERATIVE)
+                    if success:
+                        self.draw_axis(img, rotation_vector, translation_vector, self.template_cm_size)
+                        # img = self.compute_dist(img, translation_vector)
 
                 self.display_img('img', img)
                 continue
