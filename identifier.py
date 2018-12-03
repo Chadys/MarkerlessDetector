@@ -41,15 +41,6 @@ class Identifier:
             gray_img = cv2.drawKeypoints(gray_img, kp, img)
             self.display_img(name, gray_img)
 
-    def update_template(self, color_changed=False):
-        for template in self.templates:
-            if color_changed:
-                template.img = template.img_color if self.properties.color else template.img_gray
-            template.kp, template.des = self.calculate_feature_points(template.img)
-            img2 = None
-            img = cv2.drawKeypoints(template.img, template.kp, img2)
-            self.display_img(template.name, img)
-
     def calculate_feature_points(self, img):
         # Find the keypoints and descriptors using features
         kp = self.properties.detector.detect(img, None)
@@ -63,8 +54,8 @@ class Identifier:
 
     def find_match(self, des1, des2, kp1, kp2, extra_arg=None):
         if extra_arg is None:
-            return self.properties.matcher_method_choice.value(self.properties, des1, des2, kp1, kp2)
-        return self.properties.matcher_method_choice.value(self.properties, des1, des2, kp1, kp2, extra_arg)
+            return self.properties.matcher_method_choice(self.properties, des1, des2, kp1, kp2)
+        return self.properties.matcher_method_choice(self.properties, des1, des2, kp1, kp2, extra_arg)
 
     @staticmethod
     def template_classif(good_matches):
@@ -75,38 +66,15 @@ class Identifier:
         return cv2.isContourConvex(square_pts)
 
     def display_img(self, name, img):
-        font = cv2.FONT_HERSHEY_PLAIN
-        font_scale = 1
-        thickness = 1
-        line_type = cv2.LINE_AA
-
-        text = '{}{}/{}/{}/{}/{}'.format(self.error_text, self.properties.detector_choice.name,
-                                         self.properties.descriptor_choice.name, self.properties.matcher_choice.name,
-                                         self.properties.matcher_method_choice.name,
-                                         self.properties.homography_method_choice.name)
-        img = cv2.putText(img, text, (0, 15), font, font_scale, (255, 255, 255), thickness, line_type)
-        img = cv2.putText(img, text, (0, 15), font, font_scale, (0, 0, 0), thickness, line_type)
         cv2.imshow(name, img)
         self.process_keys()
 
-    def process_keys(self):
-        k = chr(cv2.waitKey(1) & 255)
-        if k == 'a':
-            self.properties.update_detector()
-            self.update_template()
-        elif k == 'z':
-            color_changed = self.properties.color
-            self.properties.update_descriptor()
-            color_changed = color_changed != self.properties.color
-            self.update_template(color_changed)
-        elif k == 'e':
-            self.properties.update_matcher()
-        elif k == 'r':
-            self.properties.update_matcher_method()
-        elif k == 't':
-            self.properties.update_homography_method()
+    @staticmethod
+    def process_keys():
+        cv2.waitKey(1)
 
-    def compute_dist(self, img, tvec):
+    @staticmethod
+    def compute_dist(img, tvec):
         dist = np.linalg.norm(tvec)
         font = cv2.FONT_HERSHEY_PLAIN
         font_scale = 3
@@ -140,8 +108,7 @@ class Identifier:
                 if not ret:
                     raise KeyboardInterrupt()
                 # print('Loading query image {}'.format(name))
-                img = cv2.cvtColor(img, cv2.COLOR_BGRA2BGR) if self.properties.color \
-                    else cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+                img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
                 # print('  Calculating features ...')
                 query_kp, query_des = self.calculate_feature_points(img)
                 if query_des is None or query_des.size == 0:
