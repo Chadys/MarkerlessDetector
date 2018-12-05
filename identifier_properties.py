@@ -49,36 +49,36 @@ class FlannAlgorithm(Enum):
 
 
 class FeatureDetector(Enum):
-    SIFT = cv2.xfeatures2d.SIFT_create  # take less memory, resilient to scaling
+    SIFT = cv2.xfeatures2d.SIFT_create  # memory efficient, resilient to scaling
     SURF = cv2.xfeatures2d.SURF_create  # = quicker SIFT resilient to rotation and blur, sensitive to change of viewpoint and illumination
     ORB = cv2.ORB_create  # = fusion and enhancement to FAST&BRIEF, resilient to rotation and scaling
-    AKAZE = cv2.AKAZE_create  #
-    BRISK = cv2.BRISK_create  # similar to ORB, different method
-    KAZE = cv2.KAZE_create  #
-    MSER = cv2.MSER_create  #
-    AGAST = cv2.AgastFeatureDetector_create  #
-    FAST = cv2.FastFeatureDetector_create  # fast, sensitive to noise, rotation and scaling, need threshold
+    AKAZE = cv2.AKAZE_create  # faster KAZE but less performant in some case
+    BRISK = cv2.BRISK_create  # similar to ORB, different method, low computationnal cost (lower than surf)
+    KAZE = cv2.KAZE_create  # resilient to noise, locally adaptive blurring for better detection of distinctive details compared to Sift/Surf
+    MSER = cv2.MSER_create  # extract stable "region" aka blob
+    AGAST = cv2.AgastFeatureDetector_create  # better FAST
+    FAST = cv2.FastFeatureDetector_create  # fast, sensitive to noise, rotation and scaling since target and source image needs to be similar, need threshold
     GFTT = cv2.GFTTDetector_create  # resilient to rotation, sensitive to scaling
-    BLOB = cv2.SimpleBlobDetector_create  #
+    BLOB = cv2.SimpleBlobDetector_create  # extract blob filtered by color, size or shape, manual adjustement no automatic detection
     HARRIS = cv2.xfeatures2d.HarrisLaplaceFeatureDetector_create  # sensitive to scaling
     # MSD     = cv2.xfeatures2d.MSDDetector_create    #
-    STAR = cv2.xfeatures2d.StarDetector_create  # = CenSurE, use w/ BRIEF
+    STAR = cv2.xfeatures2d.StarDetector_create  # = CenSurE, use w/ BRIEF, scale invariant
 
 
 class FeatureDescriptor(Enum):
-    SIFT = cv2.xfeatures2d.SIFT_create  #
-    SURF = cv2.xfeatures2d.SURF_create  #
-    ORB = cv2.ORB_create  #
-    AKAZE = cv2.AKAZE_create  #
-    BRISK = cv2.BRISK_create  #
-    KAZE = cv2.KAZE_create  #
+    SIFT = cv2.xfeatures2d.SIFT_create
+    SURF = cv2.xfeatures2d.SURF_create
+    ORB = cv2.ORB_create
+    AKAZE = cv2.AKAZE_create
+    BRISK = cv2.BRISK_create
+    KAZE = cv2.KAZE_create
     VGG = cv2.xfeatures2d.VGG_create  #
-    DAISY = cv2.xfeatures2d.DAISY_create  #
+    DAISY = cv2.xfeatures2d.DAISY_create  # resilient to rotation, better memory comsuption and computational cost than SIFT, used to extract a descriptor for EVERY pixel in an image
     LATCH = cv2.xfeatures2d.LATCH_create  #
     LUCID = cv2.xfeatures2d.LUCID_create  #
     FREAK = cv2.xfeatures2d.FREAK_create  #
     BOOST = cv2.xfeatures2d.BoostDesc_create  #
-    BRIEF = cv2.xfeatures2d.BriefDescriptorExtractor_create  # take less memory
+    BRIEF = cv2.xfeatures2d.BriefDescriptorExtractor_create  # memory efficient
 
 
 class Matcher(Enum):

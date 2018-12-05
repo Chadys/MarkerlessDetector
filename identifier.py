@@ -35,8 +35,7 @@ class Identifier:
             gray_img = cv2.cvtColor(color_img, cv2.COLOR_BGRA2GRAY)
             print('  Calculating features ...')
             kp, des = self.calculate_feature_points(gray_img)
-            if des.size > 0:
-                self.templates.append(Template(name, gray_img, color_img, kp, des))
+            self.templates.append(Template(name, gray_img, color_img, kp, des))
             img = None
             gray_img = cv2.drawKeypoints(gray_img, kp, img)
             self.display_img(name, gray_img)
