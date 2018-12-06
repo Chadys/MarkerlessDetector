@@ -185,4 +185,6 @@ def main():
 
 
 if __name__ == "__main__":
+    print('Program launch...')
     sys.exit(main())
+    print('Program finished')

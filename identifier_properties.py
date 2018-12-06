@@ -41,8 +41,8 @@ class FlannAlgorithm(Enum):
 class PropertiesGenerator:
 
     def __init__(self):
-        self.detector = cv2.KAZE_create()
-        self.descriptor = cv2.xfeatures2d.SIFT_create()
+        self.detector = cv2.AgastFeatureDetector()
+        self.descriptor = cv2.ORB_create()
         self.matcher_method_choice = MatcherMethodDef.knn_match
         self.matcher = self.get_correct_matcher()
         self.homography_method = cv2.RANSAC
