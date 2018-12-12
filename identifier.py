@@ -39,7 +39,6 @@ class Identifier:
                 self.templates.append(Template(name, gray_img, color_img, kp, des))
             img = None
             gray_img = cv2.drawKeypoints(gray_img, kp, img)
-            self.display_img(name, gray_img)
 
     def calculate_feature_points(self, img):
         # Find the keypoints and descriptors using features
@@ -65,39 +64,14 @@ class Identifier:
     def is_valid_square(square_pts):
         return cv2.isContourConvex(square_pts)
 
-    def display_img(self, name, img):
-        cv2.imshow(name, img)
-        self.process_keys()
-
     @staticmethod
     def process_keys():
         cv2.waitKey(1)
 
     @staticmethod
-    def compute_dist(img, tvec):
+    def get_dist(tvec):
         dist = np.linalg.norm(tvec)
-        font = cv2.FONT_HERSHEY_PLAIN
-        font_scale = 3
-        thickness = 3
-        line_type = cv2.LINE_AA
-        height, width = img.shape[:2]
-        return cv2.putText(img, 'distance : {}cm'.format(round(dist, 2)), (width - 500, height - 20),
-                           font, font_scale, (255, 0, 125), thickness, line_type)
-
-    def draw_axis(self, img, rvec, tvec, length=10):
-        axis_points = np.float32([(0, 0, 0), (length, 0, 0), (0, length, 0), (0, 0, length)])
-
-        image_points, _ = cv2.projectPoints(axis_points, rvec, tvec,
-                                            self.properties.camera_matrix,
-                                            self.properties.dist_coeffs)
-
-        origin = tuple(image_points[0].ravel().astype(np.int32, casting='unsafe'))
-        point = image_points[1].ravel().astype(np.int32, casting='unsafe')
-        cv2.line(img, origin, tuple(point), (0, 0, 255), thickness=3)
-        point = image_points[2].ravel().astype(np.int32, casting='unsafe')
-        cv2.line(img, origin, tuple(point), (0, 255, 0), thickness=3)
-        point = image_points[3].ravel().astype(np.int32, casting='unsafe')
-        cv2.line(img, origin, tuple(point), (255, 0, 0), thickness=3)
+        return round(dist, 2)
 
     def run(self):
         # load query
@@ -112,7 +86,6 @@ class Identifier:
                 # print('  Calculating features ...')
                 query_kp, query_des = self.calculate_feature_points(img)
                 if query_des is None or query_des.size == 0:
-                    self.display_img('img', img)
                     continue
 
                 # for each template, calculate the best match
@@ -122,7 +95,6 @@ class Identifier:
                     gm = self.find_match(template.des, query_des, template.kp, query_kp)
                     list_good_matches.append(gm if len(gm) >= MIN_MATCH_COUNT else [])
                 if not any(list_good_matches):  # if all matches list are empty
-                    self.display_img('img', img)
                     continue
 
                 # Get closest template
@@ -137,15 +109,15 @@ class Identifier:
 
                 matrix, mask = cv2.findHomography(src_pts, dst_pts, self.properties.homography_method)
                 if matrix is None:
-                    self.display_img('img', img)
                     continue
 
                 h, w = template.img.shape[0:2]
                 pts = np.expand_dims(np.float32([[0, 0], [0, h - 1], [w - 1, h - 1], [w - 1, 0]]), axis=1)
                 dst = cv2.perspectiveTransform(pts, matrix)
                 if not self.is_valid_square(dst):
-                    self.display_img('img', img)
                     continue
+
+                print('Found template {}'.format(template.name))
 
                 real_world_pts = np.float32([[0, 0],
                                              [0, self.template_cm_size],
@@ -159,12 +131,8 @@ class Identifier:
                     self.properties.dist_coeffs,
                     flags=cv2.SOLVEPNP_ITERATIVE)
                 if success:
-                    img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
-                    self.draw_axis(img, rotation_vector, translation_vector, self.template_cm_size)
-                    img = self.compute_dist(img, translation_vector)
-
-                self.display_img('img', img)
-                continue
+                    dist = self.get_dist(translation_vector)
+                    print('Distance computed {}cm'.format(dist))
 
         except KeyboardInterrupt:
             cap.release()
@@ -175,7 +143,8 @@ def main():
     parser = argparse.ArgumentParser(
         description='Image Classification and Matching Using Local Features and Homography.')
     parser.add_argument('-t', dest='template_names', nargs='+', required=True, help='List of template images')
-    parser.add_argument('-s', dest='size_cm', type=float, required=True, help='Real size in centimeter of template images')
+    parser.add_argument('-s', dest='size_cm', type=float, required=True,
+                        help='Real size in centimeter of template images')
 
     args = parser.parse_args()
 
