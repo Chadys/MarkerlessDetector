@@ -62,7 +62,7 @@ class FeatureDetector(Enum):
     BLOB = cv2.SimpleBlobDetector_create  # extract blob filtered by color, size or shape, manual adjustement no automatic detection
     HARRIS = cv2.xfeatures2d.HarrisLaplaceFeatureDetector_create  # sensitive to scaling
     # MSD     = cv2.xfeatures2d.MSDDetector_create    #
-    STAR = cv2.xfeatures2d.StarDetector_create  # = CenSurE, use w/ BRIEF, scale invariant
+    STAR = cv2.xfeatures2d.StarDetector_create  # = CenSurE, use w/ BRIEF, scale invariant, more or less resilient to rotation
 
 
 class FeatureDescriptor(Enum):
@@ -72,13 +72,13 @@ class FeatureDescriptor(Enum):
     AKAZE = cv2.AKAZE_create
     BRISK = cv2.BRISK_create
     KAZE = cv2.KAZE_create
-    VGG = cv2.xfeatures2d.VGG_create  #
+    VGG = cv2.xfeatures2d.VGG_create  # ? pretrained thingy
     DAISY = cv2.xfeatures2d.DAISY_create  # resilient to rotation, better memory comsuption and computational cost than SIFT, used to extract a descriptor for EVERY pixel in an image
-    LATCH = cv2.xfeatures2d.LATCH_create  #
+    LATCH = cv2.xfeatures2d.LATCH_create  # do comparison of triplets of image patches, faster than SIFT, resilient to illumination, blur and viewpoint changes sensible to rotation
     LUCID = cv2.xfeatures2d.LUCID_create  #
     FREAK = cv2.xfeatures2d.FREAK_create  #
     BOOST = cv2.xfeatures2d.BoostDesc_create  #
-    BRIEF = cv2.xfeatures2d.BriefDescriptorExtractor_create  # memory efficient
+    BRIEF = cv2.xfeatures2d.BriefDescriptorExtractor_create  # memory efficient, binary descriptor resilient to blur and illumination and sensible to rotation (or the inverse if use_orientation set to True)
 
 
 class Matcher(Enum):
