@@ -151,6 +151,8 @@ class Identifier:
                     elt = cv2.minAreaRect(elt)
 
                     img_croped = self.crop_min_area_rect(img, elt)
+                    if img_croped.size == 0:
+                        continue
                     hsv_img = cv2.cvtColor(img_croped, cv2.COLOR_BGR2HSV)
                     if hsv_img is None:
                         continue
