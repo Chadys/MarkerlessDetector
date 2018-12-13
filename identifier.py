@@ -86,6 +86,7 @@ class Identifier:
                 # print('  Calculating features ...')
                 query_kp, query_des = self.calculate_feature_points(img)
                 if query_des is None or query_des.size == 0:
+                    print('.', end='', flush=True)
                     continue
 
                 # for each template, calculate the best match
@@ -95,6 +96,7 @@ class Identifier:
                     gm = self.find_match(template.des, query_des, template.kp, query_kp)
                     list_good_matches.append(gm if len(gm) >= MIN_MATCH_COUNT else [])
                 if not any(list_good_matches):  # if all matches list are empty
+                    print('.', end='', flush=True)
                     continue
 
                 # Get closest template
@@ -109,12 +111,14 @@ class Identifier:
 
                 matrix, mask = cv2.findHomography(src_pts, dst_pts, self.properties.homography_method)
                 if matrix is None:
+                    print('.', end='', flush=True)
                     continue
 
                 h, w = template.img.shape[0:2]
                 pts = np.expand_dims(np.float32([[0, 0], [0, h - 1], [w - 1, h - 1], [w - 1, 0]]), axis=1)
                 dst = cv2.perspectiveTransform(pts, matrix)
                 if not self.is_valid_square(dst):
+                    print('.', end='', flush=True)
                     continue
 
                 print('Found template {}'.format(template.name))
